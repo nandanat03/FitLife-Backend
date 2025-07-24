@@ -1,9 +1,16 @@
-﻿namespace FitnessTracker.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace FitnessTracker.Models
 {
     public class Activity
     {
-        public int ActivityId {  get; set; }
-        public string ActivityName { get; set; }
-        public double? MET_Value { get; set; }
+        [Key]
+        public int ActivityId { get; set; }
+
+        [Required]
+        public string? ActivityName { get; set; }
+
+        [Required]
+        public double MET_Value { get; set; }
     }
 }

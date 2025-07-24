@@ -1,6 +1,7 @@
-﻿using FitnessTracker.Models;
+﻿using FitnessTracker.DTOs;
+using FitnessTracker.Models;
+using FitnessTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-
 
 namespace FitnessTracker.Controllers
 {
@@ -8,126 +9,63 @@ namespace FitnessTracker.Controllers
     [ApiController]
     public class WorkoutController : ControllerBase
     {
-        private readonly IConfiguration _config;
-        public readonly UserContext _context;
+        private readonly IWorkoutService _workoutRepo;
 
-        public WorkoutController(IConfiguration config, UserContext context)
+        public WorkoutController(IWorkoutService workoutRepo)
         {
-            _config = config;
-            _context = context;
+            _workoutRepo = workoutRepo;
         }
 
         [HttpPost("AddWorkout")]
-        public IActionResult Add([FromBody] Workout workout)
+        public async Task<IActionResult> Add([FromBody] WorkoutDTO dto)
         {
-            if (workout == null || string.IsNullOrEmpty(workout.ActivityType) || workout.Duration <= 0)
-            {
-                return BadRequest(new { message = "Invalid workout data" });
-            }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            try
-            {
-                var workoutpost = new Workout
-                {
-                    ActivityType = workout.ActivityType,
-                    CaloriesBurned = workout.CaloriesBurned,
-                    Distance = workout.Distance,
-                    Duration = workout.Duration,
-                    UserId = workout.UserId,
-                    WorkoutDate = workout.WorkoutDate
-                    
-                };
-                _context.Workouts.Add(workoutpost);
-                _context.SaveChanges();
-                return Ok(new { message = "WorkoutAdded" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error", error = ex.Message });
-            }
+            var result = await _workoutRepo.AddWorkoutAsync(dto);
+            return result ? Ok(new { message = "Workout added" }) : StatusCode(500, "Failed to add workout");
         }
 
         [HttpGet("ViewWorkout/{userId}")]
-        public IActionResult View(int userId)
+        public async Task<IActionResult> View(int userId)
         {
-            var workouts = _context.Workouts
-        .Where(w => w.UserId == userId)
-        .OrderBy(w => w.WorkoutDate)
-        .ToList();
-
+            var workouts = await _workoutRepo.GetUserWorkoutsAsync(userId);
             return Ok(workouts);
         }
 
         [HttpDelete("{workoutId}")]
-        public IActionResult DeleteWorkout(int workoutId)
+        public async Task<IActionResult> DeleteWorkout(int workoutId)
         {
-            var workout = _context.Workouts.Find(workoutId);
-            if (workout == null)
-                return NotFound();
-
-            _context.Workouts.Remove(workout);
-            _context.SaveChanges();
-
+            await _workoutRepo.DeleteWorkoutAsync(workoutId);
             return NoContent();
         }
 
         [HttpPost("DeleteMultiple")]
-        public IActionResult DeleteMultiple([FromBody] List<int> workoutIds)
+        public async Task<IActionResult> DeleteMultiple([FromBody] List<int> workoutIds)
         {
-            var workouts = _context.Workouts
-                .Where(w => workoutIds.Contains(w.WorkoutId))
-                .ToList();
-
-            if (!workouts.Any())
-                return NotFound("No workouts found for the given IDs.");
-
-            _context.Workouts.RemoveRange(workouts);
-            _context.SaveChanges();
-
-            return NoContent();
+            var result = await _workoutRepo.DeleteMultipleAsync(workoutIds);
+            return result ? NoContent() : NotFound("No workouts found for given IDs");
         }
 
         [HttpGet("GetActivities")]
-        public IActionResult GetActivities()
+        public async Task<IActionResult> GetActivities()
         {
-            var activities = _context.Activities
-                .Select(a => new
-                {
-                    name = a.ActivityName,
-                    metValue = a.MET_Value
-                })
-                .ToList();
-
+            var activities = await _workoutRepo.GetAllActivitiesAsync();
             return Ok(activities);
         }
 
-        [HttpPost("Admin/AddActivity")]
-        public IActionResult AddActivity([FromBody] Activity newActivity)
-        {
-            if (newActivity == null || string.IsNullOrWhiteSpace(newActivity.ActivityName) || newActivity.MET_Value <= 0)
-            {
-                return BadRequest(new { message = "Invalid activity data" });
-            }
+        [HttpPost("AddActivity")]
+public async Task<IActionResult> AddActivity([FromBody] Activity newActivity)
+{
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);
 
-            
-            var existing = _context.Activities
-                .FirstOrDefault(a => a.ActivityName.ToLower() == newActivity.ActivityName.ToLower());
+    var result = await _workoutRepo.AddActivityAsync(newActivity);
 
-            if (existing != null)
-            {
-                return Conflict(new { message = "Activity already exists" });
-            }
+    return result == "Success" 
+        ? Ok(new { message = "Activity added successfully" }) 
+        : StatusCode(500, new { message = "Failed to add activity" });
+}
 
-            try
-            {
-                _context.Activities.Add(newActivity);
-                _context.SaveChanges();
-                return Ok(new { message = "Activity added successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error adding activity", error = ex.Message });
-            }
-        }
     }
 }

@@ -1,7 +1,7 @@
-﻿using FitnessTracker.Models;
-using Microsoft.AspNetCore.Http;
+﻿using FitnessTracker.DTOs;
+using FitnessTracker.Interfaces;
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Controllers
 {
@@ -9,89 +9,50 @@ namespace FitnessTracker.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IConfiguration _config;
-        public readonly UserContext _context;
-        public UserController(IConfiguration config, UserContext context)
+        private readonly IUserService _userService;
+
+        public UserController(IUserService userService)
         {
-            _config = config;
-            _context = context;
+            _userService = userService;
         }
 
         [HttpPost("CreateUser")]
-        public IActionResult Create(User user)
+        public async Task<IActionResult> CreateUser(UserCreateDto user)
         {
-           
-
-             if (_context.Users.Where(u => u.Email == user.Email).FirstOrDefault() != null)
-            {
-                return Ok(new { message = "AlreadyExist" });
-            }
-            user.MemberSince = DateTime.Now;
-            _context.Users.Add(user);   
-            _context.SaveChanges();
-            
-            return Ok(new { message = "Success" });
+            var result = await _userService.CreateUserAsync(user);
+            return Ok(new { message = result });
         }
 
         [HttpPost("LoginUser")]
+        public async Task<IActionResult> Login(LoginDto login)
+        {
+            var result = await _userService.LoginAsync(login);
 
-        public IActionResult Login(Login user) {
+            if (result == null)
+                return Unauthorized(new { message = "Invalid User" });
 
-
-
-            var userAvailable = _context.Users.Where(u => u.Email == user.Email && u.Password == user.Password).FirstOrDefault();
-            if (userAvailable != null)
-            {
-                var response = new LoginResponse()
-                {
-                    Role = userAvailable.Role,
-                    UserName = userAvailable.FirstName,
-                    UserId = userAvailable.UserId,
-                    Weight = userAvailable.Weight
-                };
-
-                return Ok(response);
-            }
-            return Unauthorized("Invalid User");
+            return Ok(result);
         }
 
         [HttpGet("GetUsers")]
-        public IActionResult GetUsers()
+        public async Task<IActionResult> GetUsers()
         {
-            var users = _context.Users
-                .Where(u => u.Role != "admin")
-                .Select(u => new
-                {
-                    u.UserId,
-                    u.FirstName,
-                    u.LastName,
-                    u.Email,
-                    u.Role,
-                   
-                })
-                .ToList();
-
+            var users = await _userService.GetUsersAsync();
             return Ok(users);
         }
 
-        
         [HttpDelete("Admin/DeleteUser/{id}")]
-        public IActionResult DeleteUser(int id)
+        public async Task<IActionResult> DeleteUser(int id)
         {
-            var user = _context.Users.FirstOrDefault(u => u.UserId == id);
+            var result = await _userService.DeleteUserAsync(id);
 
-            if (user == null)
-                return NotFound(new { message = "User not found." });
-
-            if (user.Role == "admin")
-                return Forbid("Cannot delete admin users.");
-
-            _context.Users.Remove(user);
-            _context.SaveChanges();
-
-            return Ok(new { message = "User deleted successfully." });
+            return result switch
+            {
+                "NotFound" => NotFound(new { message = "User not found." }),
+                "CannotDeleteAdmin" => Forbid("Cannot delete admin users."),
+                "Deleted" => Ok(new { message = "User deleted successfully." }),
+                _ => StatusCode(500, "Unknown error")
+            };
         }
     }
-
 }
-

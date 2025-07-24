@@ -20,8 +20,6 @@ namespace FitnessTracker.Models
         [Required]
         public int UserId { get; set; }
 
-        [JsonIgnore]
-        [ValidateNever]
         [ForeignKey("UserId")]
         public User User { get; set; }
 

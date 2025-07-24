@@ -1,5 +1,8 @@
+using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
+using FitnessTracker.Services;
 using Microsoft.EntityFrameworkCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +12,13 @@ builder.Services.AddControllers();
 //Add Databse connection
 builder.Services.AddDbContext<UserContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyDBConnection")));
+
+builder.Services.AddScoped<IWorkoutService, WorkoutService>();
+builder.Services.AddScoped<IGoalService, GoalService>();
+builder.Services.AddScoped<IProgressService, ProgressService>();
+builder.Services.AddScoped<IMealService, MealService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 
 // Add OpenAPI - Swagger support for API documentation
 builder.Services.AddEndpointsApiExplorer();
@@ -27,6 +37,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -35,6 +46,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
 app.UseCors(); 
 app.UseAuthorization();
 

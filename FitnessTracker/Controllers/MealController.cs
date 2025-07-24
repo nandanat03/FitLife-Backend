@@ -1,4 +1,7 @@
-﻿using FitnessTracker.Models;
+﻿using FitnessTracker.DTOs;
+using FitnessTracker.Interfaces;
+using FitnessTracker.Models;
+using FitnessTracker.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessTracker.Controllers
@@ -7,39 +10,32 @@ namespace FitnessTracker.Controllers
     [ApiController]
     public class MealController : ControllerBase
     {
-        private readonly UserContext _context;
+        private readonly IMealService _mealService;
 
-        public MealController(UserContext context)
+        public MealController(IMealService mealService)
         {
-            _context = context;
+            _mealService = mealService;
         }
 
-        [HttpGet("GetMealCalories")]   
-        public IActionResult GetMealCalories()
+        [HttpGet("GetMealCalories")]
+        [ProducesResponseType(typeof(IEnumerable<MealDTO>), 200)]
+        public async Task<ActionResult<IEnumerable<MealDTO>>> GetMealCalories()
         {
-            var foodCalories = _context.Meals
-                .Select(f => new
-                {
-                    name = f.MealName,
-                    caloriesPer100g = f.CaloriesPer100g,      
-                    caloriesPerPiece = f.CaloriesPerPiece
-                })
-                .ToList();
-
-            return Ok(foodCalories);
+            var result = await _mealService.GetMealsAsync();
+            return Ok(result);
         }
 
         [HttpPost("Admin/AddMeal")]
-        public IActionResult AddMeal([FromBody] Meal meal)
+        public async Task<IActionResult> AddMeal([FromBody] MealDTO mealDto)
         {
-            if (meal == null || string.IsNullOrWhiteSpace(meal.MealName))
-                return BadRequest("Invalid meal data.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            _context.Meals.Add(meal);
-            _context.SaveChanges();
+            var result = await _mealService.AddMealAsync(mealDto);
 
-            return Ok(new { message = "Meal added successfully." });
+            return result
+                ? Ok(new { message = "Meal added successfully." })
+                : StatusCode(500, new { message = "Failed to add meal." });
         }
-
     }
 }
