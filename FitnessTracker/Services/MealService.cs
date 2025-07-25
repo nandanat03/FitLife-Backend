@@ -1,29 +1,31 @@
 ﻿using FitnessTracker.DTOs;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
-using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace FitnessTracker.Services
 {
     public class MealService : IMealService
     {
-        private readonly UserContext _context;
+        private readonly IMealRepository _mealRepository;
 
-        public MealService(UserContext context)
+        public MealService(IMealRepository mealRepository)
         {
-            _context = context;
+            _mealRepository = mealRepository;
         }
 
         public async Task<List<MealDTO>> GetMealsAsync()
         {
-            return await _context.Meals
-                .Select(m => new MealDTO(
-                    m.MealName,
-                    m.CaloriesPer100g,
-                    m.CaloriesPerPiece
-                ))
-                .ToListAsync();
+            var meals = await _mealRepository.GetAllMealsAsync();
+
+            return meals.Select(m => new MealDTO
+            {
+                Name = m.MealName,
+                CaloriesPer100g = m.CaloriesPer100g,
+                CaloriesPerPiece = m.CaloriesPerPiece
+            }).ToList();
         }
 
         public async Task<bool> AddMealAsync(MealDTO mealDto)
@@ -35,8 +37,7 @@ namespace FitnessTracker.Services
                 CaloriesPerPiece = mealDto.CaloriesPerPiece
             };
 
-            _context.Meals.Add(meal);
-            return await _context.SaveChangesAsync() > 0;
+            return await _mealRepository.AddMealAsync(meal);
         }
     }
 }

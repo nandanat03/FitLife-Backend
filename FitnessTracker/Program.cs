@@ -1,5 +1,6 @@
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
+using FitnessTracker.Repositories;
 using FitnessTracker.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +13,12 @@ builder.Services.AddControllers();
 //Add Databse connection
 builder.Services.AddDbContext<UserContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyDBConnection")));
+
+builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
+builder.Services.AddScoped<IGoalRepository, GoalRepository>();
+builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
+builder.Services.AddScoped<IMealRepository, MealRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IGoalService, GoalService>();

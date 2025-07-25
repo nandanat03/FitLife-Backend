@@ -2,9 +2,13 @@
 
 namespace FitnessTracker.DTOs
 {
-    public record MealDTO(
-        string Name,
-        double? CaloriesPer100g,
-        double? CaloriesPerPiece
-    );
+    public class MealDTO
+    {
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        public double? CaloriesPer100g { get; set; }
+
+        public double? CaloriesPerPiece { get; set; }
+    }
 }

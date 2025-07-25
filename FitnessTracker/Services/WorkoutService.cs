@@ -1,17 +1,16 @@
 ﻿using FitnessTracker.DTOs;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Services
 {
-    public class WorkoutService :IWorkoutService
+    public class WorkoutService : IWorkoutService
     {
-        private readonly UserContext _context;
+        private readonly IWorkoutRepository _repo;
 
-        public WorkoutService(UserContext context)
+        public WorkoutService(IWorkoutRepository repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
         public async Task<bool> AddWorkoutAsync(WorkoutDTO dto)
@@ -26,61 +25,43 @@ namespace FitnessTracker.Services
                 UserId = dto.UserId
             };
 
-            _context.Workouts.Add(workout);
-            var result = await _context.SaveChangesAsync();
-
-            return result > 0; // true if at least one row saved
+            return await _repo.AddWorkoutAsync(workout);
         }
 
         public async Task<List<Workout>> GetUserWorkoutsAsync(int userId)
         {
-            return await _context.Workouts
-                .Where(w => w.UserId == userId)
-                .OrderBy(w => w.WorkoutDate)
-                .ToListAsync();
+            return await _repo.GetUserWorkoutsAsync(userId);
         }
 
         public async Task DeleteWorkoutAsync(int workoutId)
         {
-            var workout = await _context.Workouts.FindAsync(workoutId);
+            var workout = await _repo.GetWorkoutByIdAsync(workoutId);
             if (workout != null)
             {
-                _context.Workouts.Remove(workout);
-                await _context.SaveChangesAsync();
+                await _repo.DeleteWorkoutsAsync(new List<Workout> { workout });
             }
         }
 
         public async Task<bool> DeleteMultipleAsync(List<int> workoutIds)
         {
-            var workouts = await _context.Workouts
-                .Where(w => workoutIds.Contains(w.WorkoutId))
-                .ToListAsync();
+            var workouts = await _repo.GetUserWorkoutsAsync(0); // to get all, but we filter manually
+            var selected = workouts.Where(w => workoutIds.Contains(w.WorkoutId)).ToList();
+            if (!selected.Any()) return false;
 
-            if (!workouts.Any())
-                return false;
-
-            _context.Workouts.RemoveRange(workouts);
-            await _context.SaveChangesAsync();
-            return true;
+            return await _repo.DeleteWorkoutsAsync(selected);
         }
 
         public async Task<List<object>> GetAllActivitiesAsync()
         {
-            return await _context.Activities
-                .Select(a => new { name = a.ActivityName, metValue = a.MET_Value })
-                .ToListAsync<object>();
+            return await _repo.GetAllActivitiesAsync();
         }
 
         public async Task<string> AddActivityAsync(Activity newActivity)
         {
-            var exists = await _context.Activities
-                .AnyAsync(a => a.ActivityName.ToLower() == newActivity.ActivityName.ToLower());
-
-            if (exists)
+            if (await _repo.ActivityExistsAsync(newActivity.ActivityName))
                 return "Exists";
 
-            _context.Activities.Add(newActivity);
-            await _context.SaveChangesAsync();
+            await _repo.AddActivityAsync(newActivity);
             return "Success";
         }
     }

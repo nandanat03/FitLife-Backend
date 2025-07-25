@@ -1,17 +1,16 @@
 ﻿using FitnessTracker.DTOs;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Services
 {
     public class GoalService : IGoalService
     {
-        private readonly UserContext _context;
+        private readonly IGoalRepository _repo;
 
-        public GoalService(UserContext context)
+        public GoalService(IGoalRepository repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
         public async Task<string> AddGoalAsync(GoalDTO dto)
@@ -28,20 +27,14 @@ namespace FitnessTracker.Services
                 EndDate = dto.EndDate
             };
 
-            _context.Goals.Add(goal);
-            await _context.SaveChangesAsync();
+            await _repo.AddGoalAsync(goal);
             return "Success";
         }
 
         public async Task<List<object>> GetGoalReportAsync(int userId)
         {
-            var goals = await _context.Goals
-                .Where(g => g.UserId == userId)
-                .ToListAsync();
-
-            var workouts = await _context.Workouts
-                .Where(w => w.UserId == userId)
-                .ToListAsync();
+            var goals = await _repo.GetGoalsByUserAsync(userId);
+            var workouts = await _repo.GetWorkoutsByUserAsync(userId);
 
             var report = goals.Select(goal =>
             {
@@ -78,13 +71,11 @@ namespace FitnessTracker.Services
 
         public async Task<bool> DeleteGoalAsync(int goalId)
         {
-            var goal = await _context.Goals.FindAsync(goalId);
+            var goal = await _repo.GetGoalByIdAsync(goalId);
             if (goal == null) return false;
 
-            _context.Goals.Remove(goal);
-            await _context.SaveChangesAsync();
+            await _repo.DeleteGoalAsync(goal);
             return true;
         }
-
     }
 }

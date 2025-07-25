@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace FitnessTracker.Models
 {
@@ -11,6 +12,7 @@ namespace FitnessTracker.Models
         public string? ActivityName { get; set; }
 
         [Required]
+        
         public double MET_Value { get; set; }
     }
 }
