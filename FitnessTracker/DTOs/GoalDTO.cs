@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FitnessTracker.DTOs
 {
-    public record GoalDTO
-    (
+    public record GoalDTO(
+        int GoalId,
         [Required] int UserId,
         [Required] GoalType GoalType,
         [Required] int GoalValue,

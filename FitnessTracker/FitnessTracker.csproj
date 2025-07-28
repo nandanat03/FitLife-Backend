@@ -7,6 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Generic\**" />
+    <Compile Remove="NewFolder1\**" />
+    <Content Remove="Generic\**" />
+    <Content Remove="NewFolder1\**" />
+    <EmbeddedResource Remove="Generic\**" />
+    <EmbeddedResource Remove="NewFolder1\**" />
+    <None Remove="Generic\**" />
+    <None Remove="NewFolder1\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="AutoWrapper" Version="1.1.0" />
     <PackageReference Include="AutoWrapper.Core" Version="4.5.1" />
     <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.13" />
@@ -21,7 +34,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="log\" />
   </ItemGroup>
 
 </Project>

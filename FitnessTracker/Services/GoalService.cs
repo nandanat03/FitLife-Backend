@@ -1,40 +1,48 @@
-﻿using FitnessTracker.DTOs;
+﻿using AutoMapper;
+using FitnessTracker.DTOs;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
+using Serilog;
+using FitnessTracker.UnitOfWork;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Services
 {
     public class GoalService : IGoalService
     {
-        private readonly IGoalRepository _repo;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public GoalService(IGoalRepository repo)
+        public GoalService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _repo = repo;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         public async Task<string> AddGoalAsync(GoalDTO dto)
         {
             if (dto.StartDate > dto.EndDate)
-                return "InvalidDate";
-
-            var goal = new Goal
             {
-                UserId = dto.UserId,
-                GoalType = dto.GoalType,
-                GoalValue = dto.GoalValue,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate
-            };
+                Log.Warning("AddGoalAsync failed: StartDate {Start} is after EndDate {End} for user {UserId}", dto.StartDate, dto.EndDate, dto.UserId);
+                return "InvalidDate";
+            }
 
-            await _repo.AddGoalAsync(goal);
+            var goal = _mapper.Map<Goal>(dto);
+            await _unitOfWork.Goals.AddAsync(goal);
+            await _unitOfWork.SaveAsync();
+
+            Log.Information("Goal added for user {UserId}: {GoalType} - {Value} from {Start} to {End}",
+                dto.UserId, dto.GoalType, dto.GoalValue, dto.StartDate, dto.EndDate);
+
             return "Success";
         }
 
         public async Task<List<object>> GetGoalReportAsync(int userId)
         {
-            var goals = await _repo.GetGoalsByUserAsync(userId);
-            var workouts = await _repo.GetWorkoutsByUserAsync(userId);
+            Log.Information("Fetching goal report for userId {UserId}", userId);
+
+            var goals = await _unitOfWork.Goals.Where(g => g.UserId == userId).ToListAsync();
+            var workouts = await _unitOfWork.Workouts.Where(w => w.UserId == userId).ToListAsync();
 
             var report = goals.Select(goal =>
             {
@@ -45,13 +53,9 @@ namespace FitnessTracker.Services
                     .Where(w => w.WorkoutDate >= goal.StartDate && w.WorkoutDate < inclusiveEndDate);
 
                 if (goal.GoalType == GoalType.Calories)
-                {
                     achieved = relevantWorkouts.Sum(w => w.CaloriesBurned);
-                }
                 else if (goal.GoalType == GoalType.Distance)
-                {
                     achieved = relevantWorkouts.Sum(w => w.Distance);
-                }
 
                 return new
                 {
@@ -66,16 +70,25 @@ namespace FitnessTracker.Services
                 };
             }).ToList<object>();
 
+            Log.Information("Goal report generated for userId {UserId}", userId);
             return report;
         }
 
         public async Task<bool> DeleteGoalAsync(int goalId)
         {
-            var goal = await _repo.GetGoalByIdAsync(goalId);
-            if (goal == null) return false;
+            var goal = await _unitOfWork.Goals.GetByIdAsync(goalId);
+            if (goal == null)
+            {
+                Log.Warning("DeleteGoalAsync failed: GoalId {GoalId} not found", goalId);
+                return false;
+            }
 
-            await _repo.DeleteGoalAsync(goal);
+            await _unitOfWork.Goals.DeleteAsync(goal);
+            await _unitOfWork.SaveAsync();
+
+            Log.Information("Goal deleted successfully. GoalId: {GoalId}", goalId);
             return true;
         }
     }
+
 }

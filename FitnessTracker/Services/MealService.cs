@@ -1,24 +1,30 @@
-﻿using FitnessTracker.DTOs;
+﻿using AutoMapper;
+using FitnessTracker.DTOs;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using FitnessTracker.UnitOfWork;
+using Serilog;
 
 namespace FitnessTracker.Services
 {
     public class MealService : IMealService
     {
-        private readonly IMealRepository _mealRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public MealService(IMealRepository mealRepository)
+        public MealService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _mealRepository = mealRepository;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         public async Task<List<MealDTO>> GetMealsAsync()
         {
-            var meals = await _mealRepository.GetAllMealsAsync();
+            Log.Information("Fetching all meals from the database.");
+
+            var meals = await _unitOfWork.Meals.GetAllAsync();
+
+            Log.Information("Fetched {Count} meals.", meals.Count());
 
             return meals.Select(m => new MealDTO
             {
@@ -30,6 +36,8 @@ namespace FitnessTracker.Services
 
         public async Task<bool> AddMealAsync(MealDTO mealDto)
         {
+            Log.Information("Attempting to add new meal: {Name}", mealDto.Name);
+
             var meal = new Meal
             {
                 MealName = mealDto.Name,
@@ -37,7 +45,15 @@ namespace FitnessTracker.Services
                 CaloriesPerPiece = mealDto.CaloriesPerPiece
             };
 
-            return await _mealRepository.AddMealAsync(meal);
+            await _unitOfWork.Meals.AddAsync(meal);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result > 0)
+                Log.Information("Meal added successfully: {Name}", mealDto.Name);
+            else
+                Log.Warning("Failed to add meal: {Name}", mealDto.Name);
+
+            return result > 0;
         }
     }
 }

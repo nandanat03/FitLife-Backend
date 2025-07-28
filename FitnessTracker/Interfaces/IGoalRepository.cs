@@ -1,13 +1,10 @@
 ﻿using FitnessTracker.Models;
+using FitnessTracker.GenericRepo;
 
 namespace FitnessTracker.Interfaces
 {
-    public interface IGoalRepository
+    public interface IGoalRepository : IGenericRepository<Goal>
     {
-        Task AddGoalAsync(Goal goal);
-        Task<List<Goal>> GetGoalsByUserAsync(int userId);
-        Task<List<Workout>> GetWorkoutsByUserAsync(int userId);
-        Task<Goal?> GetGoalByIdAsync(int goalId);
-        Task DeleteGoalAsync(Goal goal);
+        // Add goal-specific methods here if needed in the future
     }
 }

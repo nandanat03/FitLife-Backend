@@ -1,9 +1,17 @@
+using AutoWrapper;
+using FitnessTracker.AutoMap;
+using FitnessTracker.GenericRepo;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
 using FitnessTracker.Repositories;
 using FitnessTracker.Services;
+using FitnessTracker.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.File("C:\\Project-Training (copy)\\FitLife-Backend\\FitnessTracker\\log\\", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +21,13 @@ builder.Services.AddControllers();
 //Add Databse connection
 builder.Services.AddDbContext<UserContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyDBConnection")));
+
+//AutoMapper
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+//Generics and UnitOfWork
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
 builder.Services.AddScoped<IGoalRepository, GoalRepository>();
@@ -52,11 +67,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions
+{
+    UseApiProblemDetailsException = true,
+    IsDebug = app.Environment.IsDevelopment()
+});
 
+
+app.UseHttpsRedirection();
 app.UseCors(); 
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

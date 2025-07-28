@@ -1,25 +1,35 @@
 ﻿using FitnessTracker.DTOs;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
+using FitnessTracker.UnitOfWork;
 using Microsoft.AspNetCore.Identity;
+using Serilog;
 
 namespace FitnessTracker.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IUserRepository _userRepo;
         private readonly PasswordHasher<User> _passwordHasher;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IUnitOfWork unitOfWork)
         {
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
+            _userRepo = _unitOfWork.Users as IUserRepository
+                ?? throw new InvalidOperationException("Users repository is not an IUserRepository.");
             _passwordHasher = new PasswordHasher<User>();
         }
 
         public async Task<string> CreateUserAsync(UserCreateDto userDto)
         {
-            if (await _userRepository.EmailExistsAsync(userDto.Email))
+            Log.Information("Attempting to register user with email: {Email}", userDto.Email);
+
+            if (await _userRepo.EmailExistsAsync(userDto.Email))
+            {
+                Log.Warning("Registration failed: email {Email} already exists", userDto.Email);
                 return "AlreadyExist";
+            }
 
             var user = new User
             {
@@ -34,18 +44,33 @@ namespace FitnessTracker.Services
                 Password = _passwordHasher.HashPassword(null, userDto.Password)
             };
 
-            await _userRepository.AddUserAsync(user);
-            await _userRepository.SaveChangesAsync();
+            await _unitOfWork.Users.AddAsync(user);
+            await _unitOfWork.SaveAsync();
+
+            Log.Information("User registered successfully: {Email}, Role: {Role}", user.Email, user.Role);
+
             return "Success";
         }
 
         public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
         {
-            var user = await _userRepository.GetUserByEmailAsync(loginDto.Email);
-            if (user == null) return null;
+            Log.Information("Login attempt for email: {Email}", loginDto.Email);
+
+            var user = await _userRepo.GetUserByEmailAsync(loginDto.Email);
+            if (user == null)
+            {
+                Log.Warning("Login failed: email not found - {Email}", loginDto.Email);
+                return null;
+            }
 
             var result = _passwordHasher.VerifyHashedPassword(user, user.Password, loginDto.Password);
-            if (result == PasswordVerificationResult.Failed) return null;
+            if (result == PasswordVerificationResult.Failed)
+            {
+                Log.Warning("Login failed: invalid password for email {Email}", loginDto.Email);
+                return null;
+            }
+
+            Log.Information("Login successful for email {Email}", loginDto.Email);
 
             return new LoginResponseDto
             {
@@ -58,7 +83,11 @@ namespace FitnessTracker.Services
 
         public async Task<List<object>> GetUsersAsync()
         {
-            var users = await _userRepository.GetAllNonAdminUsersAsync();
+            Log.Information("Fetching non-admin users");
+
+            var users = await _userRepo.GetAllNonAdminUsersAsync();
+
+            Log.Information("{Count} users fetched", users.Count);
 
             return users.Select(u => new
             {
@@ -72,13 +101,25 @@ namespace FitnessTracker.Services
 
         public async Task<string> DeleteUserAsync(int id)
         {
-            var user = await _userRepository.GetUserByIdAsync(id);
-            if (user == null) return "NotFound";
+            Log.Information("Attempting to delete user with ID: {UserId}", id);
 
-            if (user.Role == "admin") return "CannotDeleteAdmin";
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
+            if (user == null)
+            {
+                Log.Warning("Delete failed: user with ID {UserId} not found", id);
+                return "NotFound";
+            }
 
-            await _userRepository.DeleteUserAsync(user);
-            await _userRepository.SaveChangesAsync();
+            if (user.Role == "admin")
+            {
+                Log.Warning("Delete blocked: user with ID {UserId} is admin", id);
+                return "CannotDeleteAdmin";
+            }
+
+            await _unitOfWork.Users.DeleteAsync(user);
+            await _unitOfWork.SaveAsync();
+
+            Log.Information("User deleted successfully: ID {UserId}", id);
 
             return "Deleted";
         }

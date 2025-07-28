@@ -4,6 +4,8 @@ namespace FitnessTracker.DTOs
 {
     public record WorkoutDTO
     {
+        public int WorkoutId { get; init; }
+
         [Required]
         public int UserId { get; init; }
 

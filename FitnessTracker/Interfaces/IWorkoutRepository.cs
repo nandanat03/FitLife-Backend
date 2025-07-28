@@ -1,12 +1,11 @@
 ﻿using FitnessTracker.Models;
+using FitnessTracker.GenericRepo;
 
 namespace FitnessTracker.Interfaces
 {
-    public interface IWorkoutRepository
+    public interface IWorkoutRepository : IGenericRepository<Workout>
     {
-        Task<bool> AddWorkoutAsync(Workout workout);
         Task<List<Workout>> GetUserWorkoutsAsync(int userId);
-        Task<Workout?> GetWorkoutByIdAsync(int workoutId);
         Task<bool> DeleteWorkoutsAsync(List<Workout> workouts);
         Task<List<object>> GetAllActivitiesAsync();
         Task<bool> ActivityExistsAsync(string activityName);

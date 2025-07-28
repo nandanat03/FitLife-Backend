@@ -1,23 +1,17 @@
-﻿
+﻿using FitnessTracker.GenericRepo;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Repositories
 {
-    public class WorkoutRepository : IWorkoutRepository
+    public class WorkoutRepository : GenericRepository<Workout>, IWorkoutRepository
     {
         private readonly UserContext _context;
 
-        public WorkoutRepository(UserContext context)
+        public WorkoutRepository(UserContext context) : base(context)
         {
             _context = context;
-        }
-
-        public async Task<bool> AddWorkoutAsync(Workout workout)
-        {
-            _context.Workouts.Add(workout);
-            return await _context.SaveChangesAsync() > 0;
         }
 
         public async Task<List<Workout>> GetUserWorkoutsAsync(int userId)
@@ -26,11 +20,6 @@ namespace FitnessTracker.Repositories
                 .Where(w => w.UserId == userId)
                 .OrderBy(w => w.WorkoutDate)
                 .ToListAsync();
-        }
-
-        public async Task<Workout?> GetWorkoutByIdAsync(int workoutId)
-        {
-            return await _context.Workouts.FindAsync(workoutId);
         }
 
         public async Task<bool> DeleteWorkoutsAsync(List<Workout> workouts)

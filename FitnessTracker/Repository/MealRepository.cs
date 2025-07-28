@@ -1,27 +1,13 @@
-﻿using FitnessTracker.Interfaces;
+﻿using FitnessTracker.GenericRepo;
+using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Repositories
 {
-    public class MealRepository : IMealRepository
+    public class MealRepository : GenericRepository<Meal>, IMealRepository
     {
-        private readonly UserContext _context;
-
-        public MealRepository(UserContext context)
+        public MealRepository(UserContext context) : base(context)
         {
-            _context = context;
-        }
-
-        public async Task<List<Meal>> GetAllMealsAsync()
-        {
-            return await _context.Meals.ToListAsync();
-        }
-
-        public async Task<bool> AddMealAsync(Meal meal)
-        {
-            _context.Meals.Add(meal);
-            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

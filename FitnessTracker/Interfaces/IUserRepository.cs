@@ -1,11 +1,11 @@
-﻿using FitnessTracker.Models;
+﻿using FitnessTracker.GenericRepo;
+using FitnessTracker.Models;
 
 namespace FitnessTracker.Interfaces
 {
-    public interface IUserRepository
+    public interface IUserRepository : IGenericRepository<User>
     {
         Task<bool> EmailExistsAsync(string email);
-        Task AddUserAsync(User user);
         Task<User?> GetUserByEmailAsync(string email);
         Task<List<User>> GetAllNonAdminUsersAsync();
         Task<User?> GetUserByIdAsync(int id);

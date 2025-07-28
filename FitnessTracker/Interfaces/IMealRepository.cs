@@ -1,12 +1,10 @@
-﻿using FitnessTracker.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using FitnessTracker.GenericRepo;
+using FitnessTracker.Models;
 
 namespace FitnessTracker.Interfaces
 {
-    public interface IMealRepository
+    public interface IMealRepository : IGenericRepository<Meal>
     {
-        Task<List<Meal>> GetAllMealsAsync();
-        Task<bool> AddMealAsync(Meal meal);
+        // Add custom methods here if needed in the future
     }
 }

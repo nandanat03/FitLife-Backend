@@ -23,7 +23,7 @@ namespace FitnessTracker.Controllers
                 return BadRequest(ModelState);
 
             var result = await _workoutRepo.AddWorkoutAsync(dto);
-            return result ? Ok(new { message = "Workout added" }) : StatusCode(500, "Failed to add workout");
+            return result ? Ok(new { message = "WorkoutAdded" }) : StatusCode(500, "Failed to add workout");
         }
 
         [HttpGet("ViewWorkout/{userId}")]
