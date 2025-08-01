@@ -1,15 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using FitnessTracker.DTOs.SmartRequiredAttribute;
 
-namespace FitnessTracker.DTOs
+namespace FitnessTracker.Dtos
 {
-    public record ActivityDTO
+    public record ActivityDto
     {
-        [Required]
+        [Smart]
         [JsonPropertyName("activityName")]
         public string ActivityName { get; set; }
 
-        [Required]
+        [Smart]
         [JsonPropertyName("met_Value")]
         public double MET_Value { get; set; }
     }

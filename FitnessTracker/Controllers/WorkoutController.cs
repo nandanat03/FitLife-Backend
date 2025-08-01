@@ -1,12 +1,13 @@
-﻿using FitnessTracker.DTOs;
+﻿using FitnessTracker.Dtos;
 using FitnessTracker.Models;
 using FitnessTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessTracker.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class WorkoutController : ControllerBase
     {
         private readonly IWorkoutService _workoutRepo;
@@ -17,20 +18,22 @@ namespace FitnessTracker.Controllers
         }
 
         [HttpPost("AddWorkout")]
-        public async Task<IActionResult> Add([FromBody] WorkoutDTO dto)
+        public async Task<IActionResult> Add([FromBody] WorkoutDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             var result = await _workoutRepo.AddWorkoutAsync(dto);
-            return result ? Ok(new { message = "WorkoutAdded" }) : StatusCode(500, "Failed to add workout");
+            return result
+                ? Ok(new { message = "Workout added successfully" })
+                : throw new Exception("Failed to add workout");
         }
 
         [HttpGet("ViewWorkout/{userId}")]
         public async Task<IActionResult> View(int userId)
         {
-            var workouts = await _workoutRepo.GetUserWorkoutsAsync(userId);
-            return Ok(workouts);
+            var workoutDtos = await _workoutRepo.GetUserWorkoutsAsync(userId);
+            return Ok(workoutDtos);
         }
 
         [HttpDelete("{workoutId}")]
@@ -44,7 +47,9 @@ namespace FitnessTracker.Controllers
         public async Task<IActionResult> DeleteMultiple([FromBody] List<int> workoutIds)
         {
             var result = await _workoutRepo.DeleteMultipleAsync(workoutIds);
-            return result ? NoContent() : NotFound("No workouts found for given IDs");
+            return result
+                ? NoContent()
+                : NotFound("No workouts found for given IDs");
         }
 
         [HttpGet("GetActivities")]
@@ -55,17 +60,15 @@ namespace FitnessTracker.Controllers
         }
 
         [HttpPost("AddActivity")]
-public async Task<IActionResult> AddActivity([FromBody] Activity newActivity)
-{
-    if (!ModelState.IsValid)
-        return BadRequest(ModelState);
+        public async Task<IActionResult> AddActivity([FromBody] ActivityDto newActivity)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-    var result = await _workoutRepo.AddActivityAsync(newActivity);
-
-    return result == "Success" 
-        ? Ok(new { message = "Activity added successfully" }) 
-        : StatusCode(500, new { message = "Failed to add activity" });
-}
-
+            var result = await _workoutRepo.AddActivityAsync(newActivity);
+            return result == "Success"
+                ? Ok(new { message = "Activity added successfully" })
+                : throw new Exception("Failed to add activity");
+        }
     }
 }

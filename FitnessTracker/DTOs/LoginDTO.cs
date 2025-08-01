@@ -1,14 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using FitnessTracker.DTOs.SmartRequiredAttribute;
 
-namespace FitnessTracker.DTOs
+namespace FitnessTracker.Dtos
 {
     public record LoginDto
     {
-        [Required]
+        [Smart]
         [EmailAddress]
         public string? Email { get; set; }
 
-        [Required]
+        [Smart]
         public string? Password { get; set; }
     }
 }

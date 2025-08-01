@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using FitnessTracker.DTOs;
+using FitnessTracker.Dtos;
 using FitnessTracker.Models;
 
 namespace FitnessTracker.AutoMap
@@ -9,10 +9,10 @@ namespace FitnessTracker.AutoMap
         public MappingProfile()
         {
             
-            CreateMap<Workout, WorkoutDTO>().ReverseMap();
+            CreateMap<Workout, WorkoutDto>().ReverseMap();
 
             
-            CreateMap<Goal, GoalDTO>()
+            CreateMap<Goal, GoalDto>()
                 .ForMember(dest => dest.GoalType, opt => opt.MapFrom(src => src.GoalType))
                 .ReverseMap();
 

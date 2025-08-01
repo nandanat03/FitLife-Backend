@@ -1,13 +1,12 @@
-﻿using FitnessTracker.DTOs;
+﻿using FitnessTracker.Dtos;
 using FitnessTracker.Interfaces;
-using FitnessTracker.Models;
-using FitnessTracker.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessTracker.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class MealController : ControllerBase
     {
         private readonly IMealService _mealService;
@@ -18,15 +17,15 @@ namespace FitnessTracker.Controllers
         }
 
         [HttpGet("GetMealCalories")]
-        [ProducesResponseType(typeof(IEnumerable<MealDTO>), 200)]
-        public async Task<ActionResult<IEnumerable<MealDTO>>> GetMealCalories()
+        [ProducesResponseType(typeof(IEnumerable<MealDto>), 200)]
+        public async Task<ActionResult<IEnumerable<MealDto>>> GetMealCalories()
         {
             var result = await _mealService.GetMealsAsync();
             return Ok(result);
         }
 
         [HttpPost("Admin/AddMeal")]
-        public async Task<IActionResult> AddMeal([FromBody] MealDTO mealDto)
+        public async Task<IActionResult> AddMeal([FromBody] MealDto mealDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -35,7 +34,7 @@ namespace FitnessTracker.Controllers
 
             return result
                 ? Ok(new { message = "Meal added successfully." })
-                : StatusCode(500, new { message = "Failed to add meal." });
+                : throw new Exception("Failed to add meal.");
         }
     }
 }

@@ -1,11 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using FitnessTracker.DTOs.SmartRequiredAttribute;
 
-namespace FitnessTracker.DTOs
+namespace FitnessTracker.Dtos
 {
-    public class MealDTO
+    public class MealDto
     {
         public int MealId { get; set; }
-        [Required]
+        [Smart]
         public string Name { get; set; } = string.Empty;
 
         public double? CaloriesPer100g { get; set; }

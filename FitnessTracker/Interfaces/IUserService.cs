@@ -1,4 +1,5 @@
-﻿using FitnessTracker.DTOs;
+﻿using FitnessTracker.Dtos;
+
 
 
 namespace FitnessTracker.Interfaces
@@ -7,7 +8,7 @@ namespace FitnessTracker.Interfaces
     {
         Task<string> CreateUserAsync(UserCreateDto user);
         Task<LoginResponseDto?> LoginAsync(LoginDto loginDto);
-        Task<List<object>> GetUsersAsync(); // Non-admin users
+        Task<List<UserListDto>> GetUsersAsync(); // Non-admin users
         Task<string> DeleteUserAsync(int id);
     }
 }

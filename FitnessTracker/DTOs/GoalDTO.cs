@@ -1,14 +1,15 @@
 ﻿using FitnessTracker.Models;
 using System.ComponentModel.DataAnnotations;
+using FitnessTracker.DTOs.SmartRequiredAttribute;
 
-namespace FitnessTracker.DTOs
+namespace FitnessTracker.Dtos
 {
-    public record GoalDTO(
+    public record GoalDto(
         int GoalId,
-        [Required] int UserId,
-        [Required] GoalType GoalType,
-        [Required] int GoalValue,
-        [Required] DateTime StartDate,
-        [Required] DateTime EndDate
+        [Smart] int UserId,
+        [Smart] GoalType GoalType,
+        [Smart] int GoalValue,
+        [Smart] DateTime StartDate,
+        [Smart] DateTime EndDate
     );
 }

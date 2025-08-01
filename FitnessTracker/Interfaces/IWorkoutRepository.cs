@@ -7,7 +7,7 @@ namespace FitnessTracker.Interfaces
     {
         Task<List<Workout>> GetUserWorkoutsAsync(int userId);
         Task<bool> DeleteWorkoutsAsync(List<Workout> workouts);
-        Task<List<object>> GetAllActivitiesAsync();
+        Task<List<Activity>> GetAllActivitiesAsync();
         Task<bool> ActivityExistsAsync(string activityName);
         Task AddActivityAsync(Activity activity);
     }

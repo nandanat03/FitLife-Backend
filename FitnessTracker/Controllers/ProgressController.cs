@@ -7,8 +7,10 @@ using System.Globalization;
 
 namespace FitnessTracker.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+
     public class ProgressController : ControllerBase
     {
         private readonly IProgressService _progressService;

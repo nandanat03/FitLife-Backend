@@ -3,7 +3,6 @@ using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
 using FitnessTracker.Repositories;
 
-
 namespace FitnessTracker.UnitOfWork
 {
     public class UnitOfWork : IUnitOfWork
@@ -12,23 +11,23 @@ namespace FitnessTracker.UnitOfWork
 
         public IWorkoutRepository Workouts { get; private set; }
         public IGenericRepository<Meal> Meals { get; private set; }
-        public IGenericRepository<Goal> Goals { get; private set; }
+        public IGoalRepository Goals { get; private set; } // changed to IGoalRepository
         public IUserRepository Users { get; private set; }
 
         public UnitOfWork(
             UserContext context,
-            IUserRepository userRepository 
+            IUserRepository userRepository,
+            IGoalRepository goalRepository // inject this
         )
         {
             _context = context;
             Workouts = new WorkoutRepository(_context);
             Meals = new GenericRepository<Meal>(_context);
-            Goals = new GenericRepository<Goal>(_context);
-            Users = userRepository; 
+            Goals = goalRepository;
+            Users = userRepository;
         }
 
         public async Task<int> SaveAsync() => await _context.SaveChangesAsync();
         public void Dispose() => _context.Dispose();
     }
-
 }

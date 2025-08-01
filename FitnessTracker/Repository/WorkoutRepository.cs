@@ -28,11 +28,9 @@ namespace FitnessTracker.Repositories
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<List<object>> GetAllActivitiesAsync()
+        public async Task<List<Activity>> GetAllActivitiesAsync()
         {
-            return await _context.Activities
-                .Select(a => new { name = a.ActivityName, metValue = a.MET_Value })
-                .ToListAsync<object>();
+            return await _context.Activities.ToListAsync();
         }
 
         public async Task<bool> ActivityExistsAsync(string activityName)

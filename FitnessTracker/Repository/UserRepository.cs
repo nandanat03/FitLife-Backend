@@ -23,7 +23,7 @@ namespace FitnessTracker.Repositories
         public async Task<List<User>> GetAllNonAdminUsersAsync() =>
             await _context.Users.Where(u => u.Role != "admin").ToListAsync();
 
-        public async Task<User?> GetUserByIdAsync(int id) =>
+        public async Task<User?> GetUserAsync(int id) =>
             await _context.Users.FindAsync(id);
 
         public async Task DeleteUserAsync(User user)

@@ -1,26 +1,27 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using FitnessTracker.DTOs.SmartRequiredAttribute;
 
-namespace FitnessTracker.DTOs
+namespace FitnessTracker.Dtos
 {
-    public record WorkoutDTO
+    public record WorkoutDto
     {
         public int WorkoutId { get; init; }
 
-        [Required]
+        [Smart]
         public int UserId { get; init; }
 
-        [Required]
+        [Smart]
         public string? ActivityType { get; init; }
 
-        [Required]
+        [Smart]
         public int Duration { get; init; }
 
-        [Required]
+        [Smart]
         public int Distance { get; init; }
 
         public double CaloriesBurned { get; init; }
 
-        [Required]
+        [Smart]
         public DateTime WorkoutDate { get; init; }
     }
 }

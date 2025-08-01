@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using FitnessTracker.DTOs;
+using FitnessTracker.Dtos;
 using FitnessTracker.Interfaces;
 
 namespace FitnessTracker.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class GoalController : ControllerBase
     {
         private readonly IGoalService _goalService;
@@ -16,7 +17,7 @@ namespace FitnessTracker.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddGoal([FromBody] GoalDTO goalDto)
+        public async Task<IActionResult> AddGoal([FromBody] GoalDto goalDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -24,7 +25,7 @@ namespace FitnessTracker.Controllers
             var result = await _goalService.AddGoalAsync(goalDto);
             return result == "Success"
                 ? Ok(new { message = "Goal added successfully" })
-                : StatusCode(500, new { message = "Failed to add goal" });
+                : throw new Exception("Failed to add goal");
         }
 
         [HttpGet("user/{userId}")]
@@ -37,10 +38,31 @@ namespace FitnessTracker.Controllers
         [HttpDelete("{goalId}")]
         public async Task<IActionResult> DeleteGoal(int goalId)
         {
-            var result = await _goalService.DeleteGoalAsync(goalId);
-            return result
-                ? NoContent()
+            var deletedGoalId = await _goalService.DeleteGoalAsync(goalId);
+            return deletedGoalId.HasValue
+                ? Ok(new { message = "Goal deleted successfully", goalId = deletedGoalId.Value })
                 : NotFound(new { message = "Goal not found" });
+        }
+
+        [HttpGet("user/{userId}/paginated")]
+        public async Task<IActionResult> GetPaginatedGoals(int userId, int page = 1, int pageSize = 10)
+        {
+            var (goals, totalCount) = await _goalService.GetGoalsPaginatedAsync(userId, page, pageSize);
+
+            return Ok(new
+            {
+                totalCount,
+                currentPage = page,
+                pageSize,
+                totalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                data = goals
+            });
+        }
+
+        [HttpGet("error")]
+        public IActionResult TriggerError()
+        {
+            throw new Exception("This is a test exception!");
         }
     }
 }

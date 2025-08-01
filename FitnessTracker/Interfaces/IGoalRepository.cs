@@ -5,6 +5,7 @@ namespace FitnessTracker.Interfaces
 {
     public interface IGoalRepository : IGenericRepository<Goal>
     {
-        // Add goal-specific methods here if needed in the future
+        Task<List<Goal>> GetPaginatedGoalsAsync(int userId, int pageNumber, int pageSize);
+        Task<int> GetTotalGoalCountAsync(int userId);
     }
 }

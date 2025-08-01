@@ -1,9 +1,10 @@
-﻿using FitnessTracker.DTOs;
+﻿using FitnessTracker.Dtos;
+using FitnessTracker.Services;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
 using FitnessTracker.UnitOfWork;
 using Microsoft.AspNetCore.Identity;
-using Serilog;
+
 
 namespace FitnessTracker.Services
 {
@@ -12,22 +13,26 @@ namespace FitnessTracker.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUserRepository _userRepo;
         private readonly PasswordHasher<User> _passwordHasher;
+        private readonly JwtService _jwtService;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(IUnitOfWork unitOfWork)
+        public UserService(IUnitOfWork unitOfWork, JwtService jwtService, ILogger<UserService> logger)
         {
             _unitOfWork = unitOfWork;
             _userRepo = _unitOfWork.Users as IUserRepository
                 ?? throw new InvalidOperationException("Users repository is not an IUserRepository.");
             _passwordHasher = new PasswordHasher<User>();
+            _jwtService = jwtService;
+            _logger = logger;
         }
 
         public async Task<string> CreateUserAsync(UserCreateDto userDto)
         {
-            Log.Information("Attempting to register user with email: {Email}", userDto.Email);
+            _logger.LogInformation("Attempting to register user with email: {Email}", userDto.Email);
 
             if (await _userRepo.EmailExistsAsync(userDto.Email))
             {
-                Log.Warning("Registration failed: email {Email} already exists", userDto.Email);
+                _logger.LogWarning("Registration failed: email {Email} already exists", userDto.Email);
                 return "AlreadyExist";
             }
 
@@ -47,79 +52,85 @@ namespace FitnessTracker.Services
             await _unitOfWork.Users.AddAsync(user);
             await _unitOfWork.SaveAsync();
 
-            Log.Information("User registered successfully: {Email}, Role: {Role}", user.Email, user.Role);
+            _logger.LogInformation("User registered successfully: {Email}, Role: {Role}", user.Email, user.Role);
 
             return "Success";
         }
 
-        public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
-        {
-            Log.Information("Login attempt for email: {Email}", loginDto.Email);
+       public async Task<LoginResponseDto?> LoginAsync(LoginDto loginDto)
+{
+    _logger.LogInformation("Login attempt for email: {Email}", loginDto.Email);
 
-            var user = await _userRepo.GetUserByEmailAsync(loginDto.Email);
-            if (user == null)
-            {
-                Log.Warning("Login failed: email not found - {Email}", loginDto.Email);
-                return null;
-            }
+    var user = await _userRepo.GetUserByEmailAsync(loginDto.Email);
+    if (user == null)
+    {
+        _logger.LogWarning("Login failed: email not found - {Email}", loginDto.Email);
+        return null;
+    }
 
-            var result = _passwordHasher.VerifyHashedPassword(user, user.Password, loginDto.Password);
-            if (result == PasswordVerificationResult.Failed)
-            {
-                Log.Warning("Login failed: invalid password for email {Email}", loginDto.Email);
-                return null;
-            }
+    var result = _passwordHasher.VerifyHashedPassword(user, user.Password, loginDto.Password);
+    if (result == PasswordVerificationResult.Failed)
+    {
+        _logger.LogWarning("Login failed: invalid password for email {Email}", loginDto.Email);
+        return null;
+    }
 
-            Log.Information("Login successful for email {Email}", loginDto.Email);
+    _logger.LogInformation("Login successful for email {Email}", loginDto.Email);
+
+          var tokens = _jwtService.GenerateTokens(user.Email, user.Role);
+
 
             return new LoginResponseDto
-            {
-                UserId = user.UserId,
-                UserName = user.FirstName,
-                Role = user.Role,
-                Weight = user.Weight
-            };
-        }
+    {
+        UserId = user.UserId,
+        UserName = user.FirstName,
+        Role = user.Role,
+        Weight = user.Weight,
+        Token = tokens.AccessToken,
+        RefreshToken = tokens.RefreshToken
+    };
+}
 
-        public async Task<List<object>> GetUsersAsync()
+
+        public async Task<List<UserListDto>> GetUsersAsync()
         {
-            Log.Information("Fetching non-admin users");
+            _logger.LogInformation("Fetching non-admin users");
 
             var users = await _userRepo.GetAllNonAdminUsersAsync();
 
-            Log.Information("{Count} users fetched", users.Count);
+            _logger.LogInformation("{Count} users fetched", users.Count);
 
-            return users.Select(u => new
-            {
+            return users.Select(u => new UserListDto(
                 u.UserId,
                 u.FirstName,
                 u.LastName,
                 u.Email,
                 u.Role
-            }).Cast<object>().ToList();
+            )).ToList();
         }
+
 
         public async Task<string> DeleteUserAsync(int id)
         {
-            Log.Information("Attempting to delete user with ID: {UserId}", id);
+            _logger.LogInformation("Attempting to delete user with ID: {UserId}", id);
 
             var user = await _unitOfWork.Users.GetByIdAsync(id);
             if (user == null)
             {
-                Log.Warning("Delete failed: user with ID {UserId} not found", id);
+                _logger.LogWarning("Delete failed: user with ID {UserId} not found", id);
                 return "NotFound";
             }
 
             if (user.Role == "admin")
             {
-                Log.Warning("Delete blocked: user with ID {UserId} is admin", id);
+                _logger.LogWarning("Delete blocked: user with ID {UserId} is admin", id);
                 return "CannotDeleteAdmin";
             }
 
             await _unitOfWork.Users.DeleteAsync(user);
             await _unitOfWork.SaveAsync();
 
-            Log.Information("User deleted successfully: ID {UserId}", id);
+            _logger.LogInformation("User deleted successfully: ID {UserId}", id);
 
             return "Deleted";
         }

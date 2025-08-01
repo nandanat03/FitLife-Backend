@@ -9,8 +9,8 @@ namespace FitnessTracker.UnitOfWork
     {
         IWorkoutRepository Workouts { get; }
         IGenericRepository<Meal> Meals { get; }
-        IGenericRepository<Goal> Goals { get; }
-        IUserRepository Users { get; } 
+        IGoalRepository Goals { get; } // changed from IGenericRepository<Goal>
+        IUserRepository Users { get; }
         Task<int> SaveAsync();
     }
 }

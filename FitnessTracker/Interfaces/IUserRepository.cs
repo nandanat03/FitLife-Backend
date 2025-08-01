@@ -8,7 +8,7 @@ namespace FitnessTracker.Interfaces
         Task<bool> EmailExistsAsync(string email);
         Task<User?> GetUserByEmailAsync(string email);
         Task<List<User>> GetAllNonAdminUsersAsync();
-        Task<User?> GetUserByIdAsync(int id);
+        Task<User?> GetUserAsync(int id);
         Task DeleteUserAsync(User user);
         Task SaveChangesAsync();
     }

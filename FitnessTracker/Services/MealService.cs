@@ -1,9 +1,8 @@
 ﻿using AutoMapper;
-using FitnessTracker.DTOs;
+using FitnessTracker.Dtos;
 using FitnessTracker.Interfaces;
 using FitnessTracker.Models;
 using FitnessTracker.UnitOfWork;
-using Serilog;
 
 namespace FitnessTracker.Services
 {
@@ -11,22 +10,24 @@ namespace FitnessTracker.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<MealService> _logger;
 
-        public MealService(IUnitOfWork unitOfWork, IMapper mapper)
+        public MealService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<MealService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
-        public async Task<List<MealDTO>> GetMealsAsync()
+        public async Task<List<MealDto>> GetMealsAsync()
         {
-            Log.Information("Fetching all meals from the database.");
+            _logger.LogInformation("Fetching all meals from the database.");
 
             var meals = await _unitOfWork.Meals.GetAllAsync();
 
-            Log.Information("Fetched {Count} meals.", meals.Count());
+            _logger.LogInformation("Fetched {Count} meals.", meals.Count());
 
-            return meals.Select(m => new MealDTO
+            return meals.Select(m => new MealDto
             {
                 Name = m.MealName,
                 CaloriesPer100g = m.CaloriesPer100g,
@@ -34,9 +35,9 @@ namespace FitnessTracker.Services
             }).ToList();
         }
 
-        public async Task<bool> AddMealAsync(MealDTO mealDto)
+        public async Task<bool> AddMealAsync(MealDto mealDto)
         {
-            Log.Information("Attempting to add new meal: {Name}", mealDto.Name);
+            _logger.LogInformation("Attempting to add new meal: {Name}", mealDto.Name);
 
             var meal = new Meal
             {
@@ -49,9 +50,9 @@ namespace FitnessTracker.Services
             var result = await _unitOfWork.SaveAsync();
 
             if (result > 0)
-                Log.Information("Meal added successfully: {Name}", mealDto.Name);
+                _logger.LogInformation("Meal added successfully: {Name}", mealDto.Name);
             else
-                Log.Warning("Failed to add meal: {Name}", mealDto.Name);
+                _logger.LogWarning("Failed to add meal: {Name}", mealDto.Name);
 
             return result > 0;
         }

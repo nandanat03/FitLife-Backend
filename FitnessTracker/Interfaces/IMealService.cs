@@ -1,10 +1,10 @@
-﻿using FitnessTracker.DTOs;
+﻿using FitnessTracker.Dtos;
 
 namespace FitnessTracker.Interfaces
 {
     public interface IMealService
     {
-        Task<List<MealDTO>> GetMealsAsync();
-        Task<bool> AddMealAsync(MealDTO mealDto);
+        Task<List<MealDto>> GetMealsAsync();
+        Task<bool> AddMealAsync(MealDto mealDto);
     }
 }

@@ -1,11 +1,16 @@
-﻿using FitnessTracker.DTOs;
+﻿using FitnessTracker.Dtos;
+using FitnessTracker.Models;
 
 namespace FitnessTracker.Interfaces
 {
     public interface IGoalService
     {
-        Task<string> AddGoalAsync(GoalDTO dto);
-        Task<List<object>> GetGoalReportAsync(int userId);
-        Task<bool> DeleteGoalAsync(int goalId);
+        Task<string> AddGoalAsync(GoalDto dto);
+        Task<List<GoalReportDto>> GetGoalReportAsync(int userId);
+        Task<int?> DeleteGoalAsync(int goalId);
+        Task<(List<GoalDto> goals, int totalCount)> GetGoalsPaginatedAsync(int userId, int page, int pageSize);
+
+
+
     }
 }
