@@ -21,7 +21,7 @@ namespace FitnessTracker.Models
         public int UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public User User { get; set; }
+        public User? User { get; set; }
 
         [Required]
         public GoalType GoalType { get; set; }

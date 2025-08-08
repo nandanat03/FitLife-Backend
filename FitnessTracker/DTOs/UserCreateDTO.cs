@@ -6,18 +6,18 @@ namespace FitnessTracker.Dtos
     public record UserCreateDto
     {
         [Smart]
-        public string FirstName { get; set; }
+        public string? FirstName { get; set; }
 
         [Smart]
-        public string LastName { get; set; }
+        public string? LastName { get; set; }
 
         [Smart]
         [EmailAddress]
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
         [Smart]
         [MinLength(6)]
-        public string Password { get; set; }
+        public string? Password { get; set; }
 
         public string Role { get; set; } = "user";
 
@@ -25,6 +25,7 @@ namespace FitnessTracker.Dtos
 
         public double Weight { get; set; }
 
-        public string ActivityLevel { get; set; }
+        public string? ActivityLevel { get; set; }
     }
 }
+

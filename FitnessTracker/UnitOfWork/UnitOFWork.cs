@@ -13,11 +13,13 @@ namespace FitnessTracker.UnitOfWork
         public IGenericRepository<Meal> Meals { get; private set; }
         public IGoalRepository Goals { get; private set; } // changed to IGoalRepository
         public IUserRepository Users { get; private set; }
-
+        public IProgressRepository Progress { get; private set; }
+        
         public UnitOfWork(
             UserContext context,
             IUserRepository userRepository,
-            IGoalRepository goalRepository // inject this
+            IGoalRepository goalRepository ,// inject this
+            IProgressRepository progressRepository
         )
         {
             _context = context;
@@ -25,6 +27,7 @@ namespace FitnessTracker.UnitOfWork
             Meals = new GenericRepository<Meal>(_context);
             Goals = goalRepository;
             Users = userRepository;
+            Progress = progressRepository;
         }
 
         public async Task<int> SaveAsync() => await _context.SaveChangesAsync();

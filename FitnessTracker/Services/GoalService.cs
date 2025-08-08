@@ -38,7 +38,7 @@ namespace FitnessTracker.Services
             return "Success";
         }
 
-        public async Task<List<GoalReportDto>> GetGoalReportAsync(int userId)
+        public async Task<IEnumerable<GoalReportDto>> GetGoalReportAsync(int userId)
         {
             _logger.LogInformation("Fetching goal report for userId {UserId}", userId);
 
@@ -69,11 +69,12 @@ namespace FitnessTracker.Services
                     AchievedValue = achieved,
                     Remaining = Math.Max(goal.GoalValue - achieved, 0)
                 };
-            }).ToList();
+            }); // Removed .ToList()
 
             _logger.LogInformation("Goal report generated for userId {UserId}", userId);
             return report;
         }
+
 
         public async Task<int?> DeleteGoalAsync(int goalId)
         {

@@ -13,9 +13,9 @@ namespace FitnessTracker.Services
             _jwtService = jwtService;
         }
 
-        public RefreshTokenDto GenerateTokens(string email, string role)
+        public RefreshTokenDto GenerateTokens(string email, string role, int userId)
         {
-            var (accessToken, refreshToken) = _jwtService.GenerateTokens(email, role);
+            var (accessToken, refreshToken) = _jwtService.GenerateTokens(email, role, userId);
             return new RefreshTokenDto(accessToken, refreshToken);
         }
 
@@ -31,11 +31,15 @@ namespace FitnessTracker.Services
 
             var email = principal.FindFirst(ClaimTypes.Email)?.Value;
             var role = principal.FindFirst(ClaimTypes.Role)?.Value;
+            var userIdStr = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(role))
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(role) || string.IsNullOrWhiteSpace(userIdStr))
                 return null;
 
-            return GenerateTokens(email, role);
+            if (!int.TryParse(userIdStr, out int userId))
+                return null;
+
+            return GenerateTokens(email, role, userId);
         }
     }
 }

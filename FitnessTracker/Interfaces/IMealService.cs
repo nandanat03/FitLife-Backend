@@ -4,7 +4,7 @@ namespace FitnessTracker.Interfaces
 {
     public interface IMealService
     {
-        Task<List<MealDto>> GetMealsAsync();
+        Task<IEnumerable<MealDto>> GetMealsAsync();
         Task<bool> AddMealAsync(MealDto mealDto);
     }
 }

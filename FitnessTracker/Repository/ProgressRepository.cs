@@ -14,25 +14,26 @@ namespace FitnessTracker.Repositories
             _context = context;
         }
 
-        public async Task<List<Workout>> GetWorkoutsByDateAsync(DateTime date)
+        public async Task<List<Workout>> GetWorkoutsByDateAsync(DateTime date, int userId)
         {
             return await _context.Workouts
-                .Where(w => w.WorkoutDate.Date == date.Date)
+                .Where(w => w.UserId == userId && w.WorkoutDate.Date == date.Date)
                 .ToListAsync();
         }
 
-        public async Task<List<Workout>> GetWorkoutsByYearAsync(int year)
+        public async Task<List<Workout>> GetWorkoutsByYearAsync(int year, int userId)
         {
             return await _context.Workouts
-                .Where(w => w.WorkoutDate.Year == year)
+                .Where(w => w.UserId == userId && w.WorkoutDate.Year == year)
                 .ToListAsync();
         }
 
-        public async Task<List<Workout>> GetWorkoutsBetweenDatesAsync(DateTime start, DateTime end)
+        public async Task<List<Workout>> GetWorkoutsBetweenDatesAsync(DateTime start, DateTime end, int userId)
         {
             return await _context.Workouts
-                .Where(w => w.WorkoutDate.Date >= start.Date && w.WorkoutDate.Date <= end.Date)
+                .Where(w => w.UserId == userId && w.WorkoutDate.Date >= start.Date && w.WorkoutDate.Date <= end.Date)
                 .ToListAsync();
         }
+
     }
 }

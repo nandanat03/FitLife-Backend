@@ -3,7 +3,7 @@ using FitnessTracker.DTOs.SmartRequiredAttribute;
 
 namespace FitnessTracker.Dtos
 {
-    public record LoginDto
+    public class LoginDto
     {
         [Smart]
         [EmailAddress]
@@ -13,3 +13,4 @@ namespace FitnessTracker.Dtos
         public string? Password { get; set; }
     }
 }
+ 

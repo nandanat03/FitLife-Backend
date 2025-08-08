@@ -1,4 +1,7 @@
-﻿using FitnessTracker.Interfaces;
+﻿using FitnessTracker.Dtos;
+using FitnessTracker.Interfaces;
+using FitnessTracker.Models;
+using FitnessTracker.UnitOfWork;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 
@@ -6,125 +9,115 @@ namespace FitnessTracker.Services
 {
     public class ProgressService : IProgressService
     {
-        private readonly IProgressRepository _repo;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ProgressService> _logger;
 
-        public ProgressService(IProgressRepository repo, ILogger<ProgressService> logger)
+        public ProgressService(IUnitOfWork unitOfWork, ILogger<ProgressService> logger)
         {
-            _repo = repo;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
-        public async Task<object> GetDailySummaryAsync()
+        public async Task<ProgressDto> GetDailySummaryAsync(int userId)
         {
             var today = DateTime.Today;
             _logger.LogInformation("Fetching daily summary for {Date}", today);
 
-            var workouts = await _repo.GetWorkoutsByDateAsync(today);
-            if (workouts == null || !workouts.Any())
+            var workouts = await _unitOfWork.Progress.GetWorkoutsByDateAsync(today, userId)
+                           ?? Enumerable.Empty<Workout>();
+
+            return BuildProgressDto(today.ToString("dd MMM"), workouts);
+        }
+
+        public async Task<ProgressDto> GetMonthlySummaryAsync(int year, int userId)
+        {
+            _logger.LogInformation("Fetching monthly summary for year {Year}", year);
+
+            var workouts = await _unitOfWork.Progress.GetWorkoutsByYearAsync(year, userId)
+                           ?? Enumerable.Empty<Workout>();
+
+            if (!workouts.Any())
+                return BuildProgressDto(Enumerable.Empty<string>(), Enumerable.Empty<double>(), Enumerable.Empty<float>(), Enumerable.Empty<float>());
+
+            var grouped = workouts
+                .GroupBy(w => w.WorkoutDate.Month)
+                .OrderBy(g => g.Key);
+
+            var labels = new List<string>();
+            var calories = new List<double>();
+            var distances = new List<float>();
+            var durations = new List<float>();
+
+            foreach (var group in grouped)
             {
-                _logger.LogWarning("No workouts found for {Date}", today);
+                labels.Add(CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(group.Key));
+                calories.Add(group.Sum(w => w.CaloriesBurned));
+                distances.Add(group.Sum(w => w.Distance));
+                durations.Add(group.Sum(w => w.Duration));
             }
 
-            string label = today.ToString("dd MMM");
+            return BuildProgressDto(labels, calories, distances, durations);
+        }
+
+        public async Task<ProgressDto> GetCustomSummaryAsync(DateTime start, DateTime end, int userId)
+        {
+            _logger.LogInformation("Fetching custom summary from {Start} to {End}", start, end);
+
+            var workouts = await _unitOfWork.Progress.GetWorkoutsBetweenDatesAsync(start, end, userId)
+                           ?? Enumerable.Empty<Workout>();
+
+            if (!workouts.Any())
+                return BuildProgressDto(Enumerable.Empty<string>(), Enumerable.Empty<double>(), Enumerable.Empty<float>(), Enumerable.Empty<float>());
+
+            var grouped = workouts
+                .GroupBy(w => w.WorkoutDate.Date)
+                .OrderBy(g => g.Key);
+
+            var labels = new List<string>();
+            var calories = new List<double>();
+            var distances = new List<float>();
+            var durations = new List<float>();
+
+            foreach (var group in grouped)
+            {
+                labels.Add(group.Key.ToString("dd MMM"));
+                calories.Add(group.Sum(w => w.CaloriesBurned));
+                distances.Add(group.Sum(w => w.Distance));
+                durations.Add(group.Sum(w => w.Duration));
+            }
+
+            return BuildProgressDto(labels, calories, distances, durations);
+        }
+
+
+        private ProgressDto BuildProgressDto(string label, IEnumerable<Workout> workouts)
+        {
             double calories = workouts.Sum(w => w.CaloriesBurned);
             float distance = workouts.Sum(w => w.Distance);
             float duration = workouts.Sum(w => w.Duration);
 
-            _logger.LogInformation("Daily Summary - Calories: {Calories}, Distance: {Distance}, Duration: {Duration}", calories, distance, duration);
-
-            return new
-            {
-                labels = new[] { label },
-                data = new object[]
+            return new ProgressDto(
+                Labels: new[] { label },
+                Data: new object[]
                 {
                     new double[] { calories },
                     new float[] { distance },
                     new float[] { duration }
                 }
-            };
+            );
         }
 
-        public async Task<object> GetMonthlySummaryAsync(int year)
+        private ProgressDto BuildProgressDto(IEnumerable<string> labels, IEnumerable<double> calories, IEnumerable<float> distances, IEnumerable<float> durations)
         {
-            _logger.LogInformation("Fetching monthly summary for year {Year}", year);
-
-            var workouts = await _repo.GetWorkoutsByYearAsync(year);
-            if (workouts == null || !workouts.Any())
-            {
-                _logger.LogWarning("No workouts found for year {Year}", year);
-            }
-
-            var grouped = workouts.GroupBy(w => w.WorkoutDate.Month).OrderBy(g => g.Key);
-
-            var labels = new List<string>();
-            var calories = new List<double>();
-            var distance = new List<float>();
-            var duration = new List<float>();
-
-            foreach (var group in grouped)
-            {
-                string monthName = CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(group.Key);
-                labels.Add(monthName);
-                calories.Add(group.Sum(w => w.CaloriesBurned));
-                distance.Add(group.Sum(w => w.Distance));
-                duration.Add(group.Sum(w => w.Duration));
-
-                _logger.LogInformation("Month: {Month} | Calories: {Calories} | Distance: {Distance} | Duration: {Duration}",
-                    monthName, calories.Last(), distance.Last(), duration.Last());
-            }
-
-            return new
-            {
-                labels,
-                data = new object[]
+            return new ProgressDto(
+                Labels: labels.ToArray(),
+                Data: new object[]
                 {
                     calories.ToArray(),
-                    distance.ToArray(),
-                    duration.ToArray()
+                    distances.ToArray(),
+                    durations.ToArray()
                 }
-            };
-        }
-
-        public async Task<object> GetCustomSummaryAsync(DateTime start, DateTime end)
-        {
-            _logger.LogInformation("Fetching custom summary from {Start} to {End}", start, end);
-
-            var workouts = await _repo.GetWorkoutsBetweenDatesAsync(start, end);
-            if (workouts == null || !workouts.Any())
-            {
-                _logger.LogWarning("No workouts found between {Start} and {End}", start, end);
-            }
-
-            var grouped = workouts.GroupBy(w => w.WorkoutDate.Date).OrderBy(g => g.Key);
-
-            var labels = new List<string>();
-            var calories = new List<double>();
-            var distance = new List<float>();
-            var duration = new List<float>();
-
-            foreach (var group in grouped)
-            {
-                string dateLabel = group.Key.ToString("dd MMM");
-                labels.Add(dateLabel);
-                calories.Add(group.Sum(w => w.CaloriesBurned));
-                distance.Add(group.Sum(w => w.Distance));
-                duration.Add(group.Sum(w => w.Duration));
-
-                _logger.LogInformation("Date: {Date} | Calories: {Calories} | Distance: {Distance} | Duration: {Duration}",
-                    dateLabel, calories.Last(), distance.Last(), duration.Last());
-            }
-
-            return new
-            {
-                labels,
-                data = new object[]
-                {
-                    calories.ToArray(),
-                    distance.ToArray(),
-                    duration.ToArray()
-                }
-            };
+            );
         }
     }
 }

@@ -36,17 +36,19 @@ namespace FitnessTracker.Services
             return saved;
         }
 
-        public async Task<List<Workout>> GetUserWorkoutsAsync(int userId)
+        public async Task<IEnumerable<Workout>> GetUserWorkoutsAsync(int userId)
         {
             _logger.LogInformation("Fetching workouts for userId {UserId}", userId);
 
             var workouts = await _unitOfWork.Workouts.GetUserWorkoutsAsync(userId);
 
             _logger.LogInformation("{Count} workouts found for userId {UserId}", workouts.Count, userId);
-            return workouts;
+
+            return workouts; 
         }
 
-        public async Task DeleteWorkoutAsync(int workoutId)
+
+        public async Task<int?> DeleteWorkoutAsync(int workoutId)
         {
             _logger.LogInformation("Attempting to delete workoutId {WorkoutId}", workoutId);
 
@@ -56,12 +58,15 @@ namespace FitnessTracker.Services
                 await _unitOfWork.Workouts.DeleteAsync(workout);
                 await _unitOfWork.SaveAsync();
                 _logger.LogInformation("WorkoutId {WorkoutId} deleted", workoutId);
+                return workout.WorkoutId; // or return workoutId;
             }
             else
             {
                 _logger.LogWarning("WorkoutId {WorkoutId} not found for deletion", workoutId);
+                return null;
             }
         }
+
 
         public async Task<bool> DeleteMultipleAsync(List<int> workoutIds)
         {
@@ -82,7 +87,7 @@ namespace FitnessTracker.Services
             return result;
         }
 
-        public async Task<List<ActivityDto>> GetAllActivitiesAsync()
+        public async Task<IEnumerable<ActivityDto>> GetAllActivitiesAsync()
         {
             _logger.LogInformation("Fetching all activities from database");
 
@@ -92,34 +97,42 @@ namespace FitnessTracker.Services
             {
                 ActivityName = a.ActivityName,
                 MET_Value = a.MET_Value
-            }).ToList();
+            });
 
-            _logger.LogInformation("{Count} activities fetched successfully", activityDtos.Count);
+            _logger.LogInformation("{Count} activities fetched successfully", activityDtos.Count());
             return activityDtos;
         }
 
 
+
         public async Task<string> AddActivityAsync(ActivityDto newActivity)
-        {
-            _logger.LogInformation("Attempting to add activity: {ActivityName}", newActivity.ActivityName);
+{
+    if (string.IsNullOrWhiteSpace(newActivity.ActivityName))
+    {
+        _logger.LogWarning("Activity name is null or empty.");
+        throw new ArgumentException("Activity name must not be null or empty.");
+    }
 
-            if (await _unitOfWork.Workouts.ActivityExistsAsync(newActivity.ActivityName))
-            {
-                _logger.LogWarning("Activity already exists: {ActivityName}", newActivity.ActivityName);
-                return "Exists";
-            }
+    _logger.LogInformation("Attempting to add activity: {ActivityName}", newActivity.ActivityName);
 
-            var activity = new Activity
-            {
-                ActivityName = newActivity.ActivityName,
-                MET_Value = newActivity.MET_Value
-            };
+    if (await _unitOfWork.Workouts.ActivityExistsAsync(newActivity.ActivityName))
+    {
+        _logger.LogWarning("Activity already exists: {ActivityName}", newActivity.ActivityName);
+        return "Exists";
+    }
 
-            await _unitOfWork.Workouts.AddActivityAsync(activity);
-            await _unitOfWork.SaveAsync();
+    var activity = new Activity
+    {
+        ActivityName = newActivity.ActivityName,
+        MET_Value = newActivity.MET_Value
+    };
 
-            _logger.LogInformation("Activity added: {ActivityName}", newActivity.ActivityName);
-            return "Success";
-        }
+    await _unitOfWork.Workouts.AddActivityAsync(activity);
+    await _unitOfWork.SaveAsync();
+
+    _logger.LogInformation("Activity added: {ActivityName}", newActivity.ActivityName);
+    return "Success";
+}
+
     }
 }

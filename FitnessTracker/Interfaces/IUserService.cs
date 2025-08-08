@@ -8,7 +8,7 @@ namespace FitnessTracker.Interfaces
     {
         Task<string> CreateUserAsync(UserCreateDto user);
         Task<LoginResponseDto?> LoginAsync(LoginDto loginDto);
-        Task<List<UserListDto>> GetUsersAsync(); // Non-admin users
+        Task<IEnumerable<UserListDto>> GetUsersAsync(); // Non-admin users
         Task<string> DeleteUserAsync(int id);
     }
 }

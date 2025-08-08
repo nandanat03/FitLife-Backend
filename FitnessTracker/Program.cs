@@ -1,4 +1,8 @@
-﻿using AutoWrapper;
+﻿using Asp.Versioning;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
+using AutoWrapper;
+using FitnessTracker.Configurations;
 using FitnessTracker.ExceptionHandling;
 using FitnessTracker.GenericRepo;
 using FitnessTracker.Interfaces;
@@ -7,12 +11,12 @@ using FitnessTracker.Repositories;
 using FitnessTracker.Services;
 using FitnessTracker.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Text;
 
 Log.Logger = new LoggerConfiguration()
@@ -26,7 +30,10 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<CustomExceptionFilter>();
+});
 
 // Database
 builder.Services.AddDbContext<UserContext>(options =>
@@ -51,64 +58,75 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ClockSkew = TimeSpan.Zero
+    };
+
+    
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine("JWT Error: " + context.Exception.Message);
+            return Task.CompletedTask;
+        }
     };
 });
-builder.Services.AddScoped<JwtService>();
 
-// Generic Repository and Unit of Work
+// Dependency Injections
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// Repositories
 builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
 builder.Services.AddScoped<IGoalRepository, GoalRepository>();
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<IMealRepository, MealRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-// Services
 builder.Services.AddScoped<IWorkoutService, WorkoutService>();
 builder.Services.AddScoped<IGoalService, GoalService>();
 builder.Services.AddScoped<IProgressService, ProgressService>();
 builder.Services.AddScoped<IMealService, MealService>();
 builder.Services.AddScoped<IUserService, UserService>();
-
-
-builder.Services.AddSingleton<JwtService>();
+builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 
+// JWT Service 
+builder.Services.AddScoped<JwtService>();
+
+// Exception filter
+builder.Services.AddScoped<CustomExceptionFilter>();
 
 builder.Host.UseSerilog();
 
-
-//API versioning
-builder.Services.AddApiVersioning(options =>
+// API versioning
+builder.Services.AddApiVersioning(opt =>
 {
-    options.DefaultApiVersion = new ApiVersion(1, 0); // v1.0 is default
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true; // Sends "api-supported-versions" and "api-deprecated-versions" headers
-    options.ApiVersionReader = ApiVersionReader.Combine(
-        new QueryStringApiVersionReader("v"),        // e.g., /api/users?v=1.0
-        new HeaderApiVersionReader("x-api-version"), // Custom header
-        new MediaTypeApiVersionReader("v")           // Accept header versioning
-    );
+    opt.DefaultApiVersion = new ApiVersion(1, 0);
+    opt.AssumeDefaultVersionWhenUnspecified = true;
+    opt.ReportApiVersions = true;
+    opt.ApiVersionReader = new UrlSegmentApiVersionReader();
 });
-
+builder.Services
+    .AddApiVersioning()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 // Swagger with JWT Auth support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "FitnessTracker API", Version = "v1" });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {your token}\"",
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {your token}'",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer" 
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -121,11 +139,11 @@ builder.Services.AddSwaggerGen(c =>
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 },
-                Scheme = "oauth2",
+                Scheme = "bearer",
                 Name = "Bearer",
                 In = ParameterLocation.Header,
             },
-            new List<string>()
+            Array.Empty<string>()
         }
     });
 });
@@ -143,20 +161,30 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+var apiVersionDescriptionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+
 // Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    app.UseSwaggerUI(options =>
+    {
+        var descriptions = app.DescribeApiVersions();
+        foreach (var description in descriptions)
+        {
 
+            var url = $"/swagger/{description.GroupName}/swagger.json";
+            var name = description.GroupName.ToUpperInvariant();
+            options.SwaggerEndpoint(url, name);
+        }
+    });
+}
 
 app.UseHttpsRedirection();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseCors();
-
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -167,7 +195,5 @@ app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions
     IsDebug = app.Environment.IsDevelopment()
 });
 
-// Map controllers
 app.MapControllers();
-
 app.Run();

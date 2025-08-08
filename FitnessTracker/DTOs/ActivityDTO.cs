@@ -8,7 +8,7 @@ namespace FitnessTracker.Dtos
     {
         [Smart]
         [JsonPropertyName("activityName")]
-        public string ActivityName { get; set; }
+        public string? ActivityName { get; set; }
 
         [Smart]
         [JsonPropertyName("met_Value")]

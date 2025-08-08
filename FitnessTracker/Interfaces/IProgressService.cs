@@ -1,9 +1,12 @@
-﻿namespace FitnessTracker.Interfaces
+﻿using FitnessTracker.Dtos;
+
+namespace FitnessTracker.Interfaces
 {
     public interface IProgressService
     {
-        Task<object> GetDailySummaryAsync();
-        Task<object> GetMonthlySummaryAsync(int year);
-        Task<object> GetCustomSummaryAsync(DateTime start, DateTime end);
+        Task<ProgressDto> GetDailySummaryAsync(int userId);
+        Task<ProgressDto> GetMonthlySummaryAsync(int year, int userId);
+        Task<ProgressDto> GetCustomSummaryAsync(DateTime start, DateTime end, int userId);
+
     }
 }

@@ -38,24 +38,26 @@ namespace FitnessTracker.Services
             );
         }
 
-        public string GenerateToken(string email, string role)
+        public string GenerateToken(string email, string role, int userId)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Role, role),
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString())
             };
 
-            var token = CreateJwtToken(claims, DateTime.UtcNow.AddMinutes(15));
+            var token = CreateJwtToken(claims, DateTime.UtcNow.AddMinutes(60));
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public string GenerateRefreshToken(string email, string role)
+        public string GenerateRefreshToken(string email, string role, int userId)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Role, role),
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim("Refresh", "true")
             };
 
@@ -63,10 +65,10 @@ namespace FitnessTracker.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public (string AccessToken, string RefreshToken) GenerateTokens(string email, string role)
+        public (string AccessToken, string RefreshToken) GenerateTokens(string email, string role, int userId)
         {
-            var accessToken = GenerateToken(email, role);
-            var refreshToken = GenerateRefreshToken(email, role);
+            var accessToken = GenerateToken(email, role, userId);
+            var refreshToken = GenerateRefreshToken(email, role, userId);
             return (accessToken, refreshToken);
         }
 

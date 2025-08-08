@@ -9,7 +9,7 @@ namespace FitnessTracker.Models
 
         [Required]
         [MaxLength(100)]
-        public string MealName { get; set; }
+        public string? MealName { get; set; }
 
         public double? CaloriesPer100g { get; set; }
 

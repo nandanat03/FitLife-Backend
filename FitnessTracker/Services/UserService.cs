@@ -46,7 +46,8 @@ namespace FitnessTracker.Services
                 ActivityLevel = userDto.ActivityLevel,
                 MemberSince = DateTime.Now,
                 Role = userDto.Email == "nandana@gmail.com" ? "admin" : "user",
-                Password = _passwordHasher.HashPassword(null, userDto.Password)
+                Password = _passwordHasher.HashPassword(new User(), userDto.Password)
+
             };
 
             await _unitOfWork.Users.AddAsync(user);
@@ -61,15 +62,17 @@ namespace FitnessTracker.Services
 {
     _logger.LogInformation("Login attempt for email: {Email}", loginDto.Email);
 
-    var user = await _userRepo.GetUserByEmailAsync(loginDto.Email);
-    if (user == null)
+            var user = await _userRepo.GetUserByEmailAsync(loginDto.Email!);
+
+            if (user == null)
     {
         _logger.LogWarning("Login failed: email not found - {Email}", loginDto.Email);
         return null;
     }
 
-    var result = _passwordHasher.VerifyHashedPassword(user, user.Password, loginDto.Password);
-    if (result == PasswordVerificationResult.Failed)
+            var result = _passwordHasher.VerifyHashedPassword(user, user.Password, loginDto.Password!);
+
+            if (result == PasswordVerificationResult.Failed)
     {
         _logger.LogWarning("Login failed: invalid password for email {Email}", loginDto.Email);
         return null;
@@ -77,13 +80,13 @@ namespace FitnessTracker.Services
 
     _logger.LogInformation("Login successful for email {Email}", loginDto.Email);
 
-          var tokens = _jwtService.GenerateTokens(user.Email, user.Role);
+          var tokens = _jwtService.GenerateTokens(user.Email, user.Role, user.UserId);
 
 
             return new LoginResponseDto
     {
         UserId = user.UserId,
-        UserName = user.FirstName,
+        UserName = user.FirstName!,
         Role = user.Role,
         Weight = user.Weight,
         Token = tokens.AccessToken,
@@ -92,7 +95,7 @@ namespace FitnessTracker.Services
 }
 
 
-        public async Task<List<UserListDto>> GetUsersAsync()
+        public async Task<IEnumerable<UserListDto>> GetUsersAsync()
         {
             _logger.LogInformation("Fetching non-admin users");
 
@@ -101,13 +104,14 @@ namespace FitnessTracker.Services
             _logger.LogInformation("{Count} users fetched", users.Count);
 
             return users.Select(u => new UserListDto(
-                u.UserId,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                u.Role
-            )).ToList();
+                u!.UserId,
+                u!.FirstName,
+                u!.LastName,
+                u!.Email,
+                u!.Role
+            )); 
         }
+
 
 
         public async Task<string> DeleteUserAsync(int id)

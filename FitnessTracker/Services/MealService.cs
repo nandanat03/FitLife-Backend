@@ -19,7 +19,7 @@ namespace FitnessTracker.Services
             _logger = logger;
         }
 
-        public async Task<List<MealDto>> GetMealsAsync()
+        public async Task<IEnumerable<MealDto>> GetMealsAsync()
         {
             _logger.LogInformation("Fetching all meals from the database.");
 
@@ -32,7 +32,7 @@ namespace FitnessTracker.Services
                 Name = m.MealName,
                 CaloriesPer100g = m.CaloriesPer100g,
                 CaloriesPerPiece = m.CaloriesPerPiece
-            }).ToList();
+            }); 
         }
 
         public async Task<bool> AddMealAsync(MealDto mealDto)
